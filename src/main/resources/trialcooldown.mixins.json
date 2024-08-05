@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "lemonnik.trialcooldown.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "TrialSpawnerLogicMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+	}
+}
