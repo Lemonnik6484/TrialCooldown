@@ -1,5 +1,6 @@
 package lemonnik.trialcooldown.mixin;
 
+import lemonnik.trialcooldown.Config;
 import net.minecraft.block.spawner.TrialSpawnerLogic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,6 +16,6 @@ public class TrialSpawnerLogicMixin {
             argsOnly = true
     )
     private static int modifyCooldownLength(int cooldownLength) {
-        return 18000;
+        return Config.cooldown;
     }
 }
