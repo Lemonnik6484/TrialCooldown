@@ -3,8 +3,13 @@ package lemonnik.trialcooldown;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import net.fabricmc.api.ModInitializer;
 
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
+import net.minecraft.server.command.CommandManager;
+import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,26 +27,56 @@ public class TrialCooldown implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		loadConfig();
+		reloadConfig();
 		LOGGER.info("TrialCooldown loaded with cooldown: " + CONFIG.cooldown);
+
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+			dispatcher.register(
+					CommandManager.literal("trialcooldown")
+							.requires(source -> source.hasPermissionLevel(2))
+							.then(CommandManager.literal("reload")
+									.executes(context -> {
+										ServerCommandSource source = context.getSource();
+
+										if (reloadConfig()) {
+											source.sendMessage(Text.literal("§aTrialCooldown config reloaded!"));
+										} else {
+											source.sendMessage(Text.literal("§cFailed to reload TrialCooldown config."));
+										}
+										return 1;
+									})
+							)
+							.then(CommandManager.literal("set")
+									.then(CommandManager.argument("cooldown", IntegerArgumentType.integer(0))
+											.executes(context -> {
+												int value = IntegerArgumentType.getInteger(context, "cooldown");
+												Config.cooldown = value;
+												saveConfig();
+
+												context.getSource().sendMessage(Text.literal("§aCooldown set to " + value + " ticks."));
+												return 1;
+											})
+									)
+							)
+			);
+		});
 	}
 
-	private void loadConfig() {
+	public boolean reloadConfig() {
 		try {
 			if (!CONFIG_FILE.exists()) {
-				CONFIG_FILE.getParentFile().mkdirs();
 				CONFIG = new Config();
 				saveConfig();
-				LOGGER.info("Created default config.");
-			} else {
-				try (FileReader reader = new FileReader(CONFIG_FILE)) {
-					CONFIG = GSON.fromJson(reader, Config.class);
-					if (CONFIG == null) CONFIG = new Config();
-				}
+				return true;
 			}
+			try (FileReader reader = new FileReader(CONFIG_FILE)) {
+				CONFIG = GSON.fromJson(reader, Config.class);
+				if (CONFIG == null) CONFIG = new Config();
+			}
+			return true;
 		} catch (Exception e) {
-			LOGGER.error("Failed to load config", e);
-			CONFIG = new Config();
+			LOGGER.error("Failed to reload config", e);
+			return false;
 		}
 	}
 
